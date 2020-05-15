@@ -1,7 +1,8 @@
 chcp 65001
 REM windows平台编译项目
 set CONAN_REVISIONS_ENABLED=1
-conan create . daixian/stable -s build_type=Release --build missing
+conan create . daixian/stable -s build_type=Release --build missing -o sqlcipher:shared=False
+conan create . daixian/stable -s build_type=Release --build missing -o sqlcipher:shared=True
 REM conan create . daixian/stable -s compiler.version=16 -s compiler.runtime=MD -s arch=x86_64 -s build_type=Release --build missing
 REM conan upload cvsystem/3.0.1@daixian/stable --all -r=conan-local
 
