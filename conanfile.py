@@ -234,7 +234,8 @@ class SqlcipherConan(ConanFile):
     def package_info(self):
         self.cpp_info.libs = ["sqlcipher"]
         if self.settings.os == "Linux":
-            self.cpp_info.system_libs.extend(["pthread", "dl"])
+            # 在 arm上编译增加m库可以静态的编译成功,但目前shared的还不能成功
+            self.cpp_info.system_libs.extend(["pthread", "dl" ,"m"])
         self.cpp_info.defines = ["SQLITE_HAS_CODEC",
                                  'SQLCIPHER_CRYPTO_OPENSSL',
                                  "SQLITE_DQS=0",
