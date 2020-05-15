@@ -12,7 +12,7 @@ int sqlite_callback(
 int main()
 {
     remove("test.db3");
-    char* zErrMsg = NULL;
+    char* zErrMsg = 0;
     sqlite3* db;
     // sqlite3_open(":memory:", &db);
     sqlite3_open("test.db3", &db);
@@ -22,7 +22,7 @@ int main()
 
     sqlite3_exec(db,
         "CREATE TABLE sys_info (id INTEGER PRIMARY KEY, dev_id INTEGER, dev_id_byte BLOB, dev_id_base64 TEXT, dev_ver TEXT, soft_ver TEXT, calib_ver TEXT)",
-        sqlite_callback, NULL, zErrMsg);
+        sqlite_callback, 0, zErrMsg);
 
     sqlite3_close(db);
     return ret;
