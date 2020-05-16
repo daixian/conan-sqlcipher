@@ -1,4 +1,5 @@
 #include <sqlcipher/sqlite3.h>
+#include <stdio.h>
 
 int sqlite_callback(
     void* pv,    /* 由 sqlite3_exec() 的第四个参数传递而来 */
@@ -7,6 +8,7 @@ int sqlite_callback(
     char** col   /* 指向表头名的指针数组, 可以由 sqlite3_column_name() 得到 */
 )
 {
+    return 0;
 }
 
 int main()
@@ -20,8 +22,8 @@ int main()
     ret = sqlite3_rekey(db, "toto123", 7);
 
     sqlite3_exec(db,
-        "CREATE TABLE sys_info (id INTEGER PRIMARY KEY, dev_id INTEGER, dev_id_byte BLOB, dev_id_base64 TEXT, dev_ver TEXT, soft_ver TEXT, calib_ver TEXT)",
-        sqlite_callback, 0, 0);
+                 "CREATE TABLE sys_info (id INTEGER PRIMARY KEY, dev_id INTEGER, dev_id_byte BLOB, dev_id_base64 TEXT, dev_ver TEXT, soft_ver TEXT, calib_ver TEXT)",
+                 sqlite_callback, 0, 0);
 
     sqlite3_close(db);
     return ret;
