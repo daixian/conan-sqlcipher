@@ -34,7 +34,7 @@ class SqlcipherConan(ConanFile):
         if self.options.crypto_library == "openssl":
             # 这里不能使用它原先设置的新版本 https://github.com/conan-io/conan-center-index/pull/1380
             # 换用了1.0.2t构建成功
-            self.requires("openssl/1.0.2t")
+            self.requires("openssl/1.1.1h")
         else:
             self.requires("libressl/2.9.2")
 
