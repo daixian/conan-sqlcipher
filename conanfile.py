@@ -47,6 +47,8 @@ class SqlcipherConan(ConanFile):
         crypto_dep = self.deps_cpp_info[str(self.options.crypto_library)]
         crypto_incdir = crypto_dep.include_paths[0]
         crypto_libdir = crypto_dep.lib_paths[0]
+        crypto_dep.libs.append("user32")  # 解决windows平台上openssl的链接错误
+        crypto_dep.libs.append("Advapi32")
         libs = map(lambda lib: lib + ".lib", crypto_dep.libs)
 
         nmake_flags = [
@@ -88,6 +90,9 @@ class SqlcipherConan(ConanFile):
 
         if self.settings.compiler.runtime in ["MD", "MDd"]:
             nmake_flags.append("USE_CRT_DLL=1")
+        # 这里正确的设置应该为0,但是可能由于openssl库的问题
+        if self.settings.compiler.runtime in ["MT", "MTd"]:
+            nmake_flags.append("USE_CRT_DLL=0")
         if self.settings.build_type == "Debug":
             nmake_flags.append("DEBUG=2")
         nmake_flags.append("FOR_WIN10=1")
@@ -130,7 +135,7 @@ class SqlcipherConan(ConanFile):
              "SQLITE_ENABLE_UUID",
              "SQLITE_TEMP_STORE=2",
              "SQLITE_USE_URI"])
-             #"SQLITE_USER_AUTHENTICATION" 不能使用
+        # "SQLITE_USER_AUTHENTICATION" 不能使用
 
         # sqlcipher config.sub does not contain android configurations...
         # elf is the most basic `os' for Android
@@ -233,9 +238,13 @@ class SqlcipherConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["sqlcipher"]
+        if self.settings.os == "Windows":
+            self.cpp_info.libs.append("user32")
+            self.cpp_info.libs.append("Advapi32")
         if self.settings.os == "Linux":
             # 在 arm上编译增加m库可以静态的编译成功,但目前shared的还不能成功
-            self.cpp_info.system_libs.extend(["pthread", "dl" ,"m"])
+            self.cpp_info.system_libs.extend(["pthread", "dl", "m"])
+
         self.cpp_info.defines = ["SQLITE_HAS_CODEC",
                                  'SQLCIPHER_CRYPTO_OPENSSL',
                                  "SQLITE_DQS=0",

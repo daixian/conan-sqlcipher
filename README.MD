@@ -32,6 +32,63 @@
     Stop.
     ```
     另外,这些OpenSSL构建脚本在arm的linux上以shared=False来构建都会有链接错误.几个SHA函数符号重定义错误.初步怀疑是openssl构建脚本的问题.
+    通过添加 
+    ``` python    
+    crypto_dep.libs.append("user32") # 解决windows平台上openssl的链接错误
+    crypto_dep.libs.append("Advapi32")
+    ```
+* SQLite3的./autoconf/Makefile.msc里定义的DEFAULTLIB有问题,会导致MT链接的时候出错,可以看到实际的DEFAULTLIB错了
+    * 微软的CRT文档 https://docs.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features?view=msvc-160
+```
+link.exe /DEBUG   /NOLOGO /MACHINE:x64 /DYNAMICBASE mincore.lib /guard:cf "/LIBPATH:C:\Program Files (x86)\Windows Kits\10\lib\10.0.19041.0\ucrt\x64" /NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib /LIBPATH:C:\Users\dx\.conan\data\openssl\1.1.1h\_\_\package\a79a557254fabcb77849dd623fed97c9c5ab7651\lib /DLL  /OUT:sqlcipher.dll sqlite3.lo sqlite3res.lo  libssl.lib libcrypto.lib user32.lib Advapi32.lib
+```
+原本的./autoconf/Makefile.msc文件如下
+``` Makefile
+!IF $(FOR_WIN10)!=0
+LTLINKOPTS = $(LTLINKOPTS) /guard:cf "/LIBPATH:$(UCRTLIBPATH)"
+!IF $(DEBUG)>1
+LTLINKOPTS = $(LTLINKOPTS) /NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib
+!ELSE
+LTLINKOPTS = $(LTLINKOPTS) /NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib
+!ENDIF
+!ENDIF
+```
+利用 USE_CRT_DLL 来修改,MT的时候USE_CRT_DLL=0;
+``` Makefile
+!IF $(FOR_WIN10)!=0
+LTLINKOPTS = $(LTLINKOPTS) /guard:cf "/LIBPATH:$(UCRTLIBPATH)"
+# USE_CRT_DLL!=0 is MD
+!IF $(USE_CRT_DLL)!=0
+	!IF $(DEBUG)>1
+	LTLINKOPTS = $(LTLINKOPTS) /NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib
+	!ELSE
+	LTLINKOPTS = $(LTLINKOPTS) /NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib
+	!ENDIF
+!ELSE # MT
+	!IF $(DEBUG)>1
+	LTLINKOPTS = $(LTLINKOPTS) /NODEFAULTLIB:ucrtd.lib /DEFAULTLIB:libucrtd.lib
+	!ELSE
+	LTLINKOPTS = $(LTLINKOPTS) /NODEFAULTLIB:ucrt.lib /DEFAULTLIB:libucrt.lib
+	!ENDIF
+!ENDIF	
+!ENDIF
+```
+这里实际上可以不用修改,保持原样就可以了,只有带d和不带d会引起error.去掉补丁中那人的改动
+
+* 这个是def文件的生成方法,使用dumpbin
+``` Makefile
+ # <<block2>>
+-sqlite3.def:	libsqlite3.lib
+-	echo EXPORTS > sqlite3.def
+-	dumpbin /all libsqlite3.lib \
++sqlcipher.def:	sqlcipher.lib
++	echo EXPORTS > sqlcipher.def
++	dumpbin /all sqlcipher.lib \
+ 		| $(TCLSH_CMD) $(TOP)\tool\replace.tcl include "^\s+1 _?(sqlite3(?:session|changeset|changegroup|rebaser)?_[^@]*)(?:@\d+)?$$" \1 \
+ 		| sort >> sqlite3.def
+ # <</block2>>
+```
+
 2. arm上加SQLITE_USER_AUTHENTICATION的宏定义也会提示找不到文件.
 
 ## 测试
